@@ -1,17 +1,16 @@
 ﻿# CameraShit
 
-?쇱꽦 媛ㅻ윮??移대찓???뷀꽣?뚯쓣 **USB/臾댁꽑 ?붾쾭源??놁씠** ?꾨뒗 ??
+삼성 갤럭시 카메라 셔터음을 **USB/무선 디버깅 없이** 끄는 앱.
 
-## ?먮━
-`Settings.System` ??`csc_pref_camera_forced_shuttersound_key` 媛믪쓣 諛붽씔??(0 = ?? 1 = 耳?.
-???ㅻ뒗 System ?뚯씠釉붿씠??`WRITE_SETTINGS` 沅뚰븳(?ㅼ젙?먯꽌 ?ъ슜?먭? ?덉슜)留뚯쑝濡??????덈떎.
-?щ?????珥덇린?붾맆 ???덉뼱 `BOOT_COMPLETED` ?먯꽌 ?ㅼ떆 ?곸슜?쒕떎.
+## 원리
+`Settings.System` 의 `csc_pref_camera_forced_shuttersound_key` 값을 바꾼다 (0 = 끔, 1 = 켬).
+이 키는 System 테이블이라 `WRITE_SETTINGS` 권한(설정에서 사용자가 허용)만으로 쓸 수 있다.
+재부팅 시 초기화될 수 있어 `BOOT_COMPLETED` 에서 다시 적용한다.
 
-## 鍮뚮뱶
-Android Studio(JDK 17 ?ы븿)?먯꽌 ?대뜑瑜??닿퀬 Run. Gradle wrapper jar ??泥??숆린?????앹꽦?쒕떎
-(CLI: `./gradlew assembleDebug`).
+## 빌드
+Android Studio에서 폴더를 열고 Run, 또는 CLI: `./gradlew assembleDebug`
+(APK: `app/build/outputs/apk/debug/app-debug.apk`)
 
-## ?쒓퀎
-- ?쇱꽦 One UI ?꾩슜, ?쒖뒪???뚮━ 紐⑤뱶媛 吏꾨룞/臾댁쓬?????숈옉
-- ?쒖“???낅뜲?댄듃濡?留됲옄 ???덉쓬
-
+## 한계
+- 삼성 One UI 전용, 시스템 소리 모드가 진동/무음일 때 동작
+- 제조사 업데이트로 막힐 수 있음
