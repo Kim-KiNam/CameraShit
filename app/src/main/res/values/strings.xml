@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CameraShit</string>
+    <string name="toggle_label">카메라 셔터음 끄기</string>
+    <string name="grant_permission">시스템 설정 수정 권한 허용</string>
+    <string name="apply_failed">적용하지 못했습니다. 권한을 확인하세요.</string>
+    <string name="status_silent">셔터음이 꺼져 있습니다.</string>
+    <string name="status_normal">셔터음이 켜져 있습니다.</string>
+    <string name="status_need_permission">먼저 \'시스템 설정 수정\' 권한을 허용해야 합니다.</string>
+    <string name="status_unsupported">이 기기는 지원하지 않습니다(삼성 갤럭시 전용).</string>
+    <string name="notes">• 시스템 소리 모드가 진동/무음일 때 동작합니다.\n• 재부팅 후에는 자동으로 다시 적용됩니다.\n• One UI 업데이트 후 풀리면 앱을 한 번 열어주세요.</string>
+</resources>
