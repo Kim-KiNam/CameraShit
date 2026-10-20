@@ -33,11 +33,19 @@ object ShutterSound {
         if (!canWrite(context)) return false
         return try {
             Settings.System.putInt(context.contentResolver, KEY, if (silent) 0 else 1)
+            lastError = null
             isSilent(context) == silent
-        } catch (e: SecurityException) {
+        } catch (e: Exception) {
+            android.util.Log.e("CameraShit", "putInt failed", e)
+            val target = context.applicationInfo.targetSdkVersion
+            lastError = "target=$target ${e.javaClass.simpleName}: ${e.message}"
             false
         }
     }
+
+    /** 마지막 쓰기 실패 원인(진단용). */
+    var lastError: String? = null
+        private set
 
     /** 저장된 원하는 상태를 시스템에 다시 적용한다(부팅/업데이트 후). */
     fun reapply(context: Context) {

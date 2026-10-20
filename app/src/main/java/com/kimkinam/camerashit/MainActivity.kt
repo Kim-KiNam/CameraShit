@@ -32,7 +32,11 @@ class MainActivity : Activity() {
         toggle.setOnCheckedChangeListener { _, checked ->
             if (updating) return@setOnCheckedChangeListener
             if (!ShutterSound.setSilent(this, checked)) {
-                Toast.makeText(this, R.string.apply_failed, Toast.LENGTH_SHORT).show()
+                val detail = ShutterSound.lastError ?: getString(R.string.apply_failed)
+                Toast.makeText(this, detail, Toast.LENGTH_LONG).show()
+                refresh()
+                status.text = detail
+                return@setOnCheckedChangeListener
             }
             refresh()
         }

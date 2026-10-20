@@ -8,9 +8,12 @@ android {
 
     defaultConfig {
         applicationId = "com.kimkinam.camerashit"
-        minSdk = 26
-        // 34 이상이어야 Android 14+ 에서 ADB 없이 일반 설치가 가능하다.
-        targetSdk = 36
+        minSdk = 22
+        // targetSdk 23+ 는 비공개 System 키(csc_pref_camera_forced_shuttersound_key)에 쓰면
+        // 설정 제공자가 IllegalArgumentException 을 던진다(WRITE_SECURE_SETTINGS 가 있어도).
+        // 대신 Android 14+ 에서는 `adb install --bypass-low-target-sdk-block` 로 설치해야 한다.
+        @Suppress("ExpiredTargetSdkVersion")
+        targetSdk = 22
         versionCode = 1
         versionName = "0.1.0"
     }
