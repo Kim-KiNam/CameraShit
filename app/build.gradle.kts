@@ -8,14 +8,12 @@ android {
 
     defaultConfig {
         applicationId = "com.kimkinam.camerashit"
-        minSdk = 22
-        // targetSdk 23+ 는 비공개 System 키(csc_pref_camera_forced_shuttersound_key)에 쓰면
-        // 설정 제공자가 IllegalArgumentException 을 던진다(WRITE_SECURE_SETTINGS 가 있어도).
-        // 대신 Android 14+ 에서는 `adb install --bypass-low-target-sdk-block` 로 설치해야 한다.
-        @Suppress("ExpiredTargetSdkVersion")
-        targetSdk = 22
-        versionCode = 1
-        versionName = "0.1.0"
+        minSdk = 26
+        // 높게 둔다: 설정 쓰기는 앱이 아니라 온디바이스 adb(shell)가 하므로 targetSdk 제한과 무관하고,
+        // 낮은 targetSdk 는 Android 14+ 에서 일반 설치가 막힌다.
+        targetSdk = 36
+        versionCode = 2
+        versionName = "0.2.0"
     }
 
     buildTypes {
@@ -27,4 +25,13 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
+
+dependencies {
+    // 온디바이스 무선 디버깅(adb) 클라이언트. GPL-3.0-or-later OR Apache-2.0 이중 라이선스 중 Apache-2.0 로 사용.
+    implementation("com.github.MuntashirAkon:libadb-android:3.1.1")
+    // adb TLS 인증서 생성
+    implementation("com.github.MuntashirAkon:sun-security-android:1.1")
+    // TLS 키 재료 내보내기(페어링)에 필요한 Conscrypt
+    implementation("org.conscrypt:conscrypt-android:2.5.3")
 }

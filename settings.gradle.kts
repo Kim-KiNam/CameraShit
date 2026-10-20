@@ -10,6 +10,11 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // libadb-android, sun-security-android 는 JitPack 에서만 제공된다.
+        maven {
+            url = uri("https://jitpack.io")
+            content { includeGroupByRegex("com\\.github\\.MuntashirAkon.*") }
+        }
     }
 }
 

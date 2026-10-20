@@ -4,17 +4,18 @@ import android.content.Context
 import android.provider.Settings
 
 /**
- * 삼성 One UI 의 카메라 강제 셔터음 설정(Settings.System)을 읽고 쓴다.
- * 값 0 = 셔터음 끔, 1 = 기본(켬).
+ * 삼성 One UI 의 카메라 강제 셔터음 설정(Settings.System). 값 0 = 끔, 1 = 기본(켬).
+ *
+ * 읽기는 누구나 가능하지만 쓰기는 일반 앱이 거부당한다(설정 제공자가 IllegalArgumentException).
+ * 그래서 쓰기는 온디바이스 adb(shell 권한)가 [SetupService] 에서 수행한다.
  */
 object ShutterSound {
-    private const val KEY = "csc_pref_camera_forced_shuttersound_key"
+    const val KEY = "csc_pref_camera_forced_shuttersound_key"
     private const val PREFS = "camerashit"
     private const val PREF_WANT_SILENT = "want_silent"
+    private const val PREF_LAST_RESULT = "last_result"
 
-    fun canWrite(context: Context): Boolean = Settings.System.canWrite(context)
-
-    /** 현재 시스템 값이 무음(0)인지. 키가 없는 기기는 false. */
+    /** 현재 시스템 값이 무음(0)인지. */
     fun isSilent(context: Context): Boolean =
         Settings.System.getInt(context.contentResolver, KEY, 1) == 0
 
@@ -22,35 +23,20 @@ object ShutterSound {
     fun isSupported(context: Context): Boolean =
         Settings.System.getString(context.contentResolver, KEY) != null
 
-    /** 사용자가 원하는 상태. 부팅 시 재적용에 쓴다. */
-    fun wantSilent(context: Context): Boolean =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(PREF_WANT_SILENT, false)
-
-    /** 값을 쓰고 다시 읽어 반영됐는지 검증한다. 성공하면 true. */
-    fun setSilent(context: Context, silent: Boolean): Boolean {
+    private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putBoolean(PREF_WANT_SILENT, silent).apply()
-        if (!canWrite(context)) return false
-        return try {
-            Settings.System.putInt(context.contentResolver, KEY, if (silent) 0 else 1)
-            lastError = null
-            isSilent(context) == silent
-        } catch (e: Exception) {
-            android.util.Log.e("CameraShit", "putInt failed", e)
-            val target = context.applicationInfo.targetSdkVersion
-            lastError = "target=$target ${e.javaClass.simpleName}: ${e.message}"
-            false
-        }
+
+    /** 사용자가 원하는 상태. 부팅 후 값이 풀렸을 때 재적용 기준이 된다. */
+    fun wantSilent(context: Context): Boolean = prefs(context).getBoolean(PREF_WANT_SILENT, false)
+
+    fun setWantSilent(context: Context, silent: Boolean) {
+        prefs(context).edit().putBoolean(PREF_WANT_SILENT, silent).apply()
     }
 
-    /** 마지막 쓰기 실패 원인(진단용). */
-    var lastError: String? = null
-        private set
+    /** 서비스가 마지막으로 남긴 결과 문구(앱 화면 표시용). */
+    fun lastResult(context: Context): String? = prefs(context).getString(PREF_LAST_RESULT, null)
 
-    /** 저장된 원하는 상태를 시스템에 다시 적용한다(부팅/업데이트 후). */
-    fun reapply(context: Context) {
-        if (wantSilent(context) && canWrite(context) && !isSilent(context)) {
-            setSilent(context, true)
-        }
+    fun setLastResult(context: Context, value: String?) {
+        prefs(context).edit().putString(PREF_LAST_RESULT, value).apply()
     }
 }
