@@ -48,8 +48,10 @@ class MainActivity : Activity() {
         refresh()
     }
 
+    /** 권한이 있고 페어링도 유효해야 \'설정 완료\'. 페어링이 풀렸으면 다시 1~3단계를 보여준다. */
     private fun isSetUp() =
-        checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED
+        checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED &&
+            !ShutterSound.needsRepair(this)
 
     private fun developerOptionsOn() =
         Settings.Global.getInt(contentResolver, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 1
@@ -59,6 +61,7 @@ class MainActivity : Activity() {
     private fun refresh() {
         val supported = ShutterSound.isSupported(this)
         val setUp = isSetUp()
+        if (setUp && ShutterSound.isSilent(this)) ShutterSound.rememberSystemVersionIfMissing(this)
         updating = true
         toggle.isChecked = supported && ShutterSound.isSilent(this)
         updating = false

@@ -74,5 +74,13 @@
             android:layout_marginTop="40dp"
             android:text="@string/notes"
             android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:autoLink="web"
+            android:text="@string/github_note"
+            android:textSize="13sp" />
     </LinearLayout>
 </ScrollView>

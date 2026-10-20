@@ -17,6 +17,7 @@ import android.os.Process
 import android.provider.Settings
 import android.util.Log
 import io.github.muntashirakon.adb.AbsAdbConnectionManager
+import io.github.muntashirakon.adb.AdbPairingRequiredException
 import io.github.muntashirakon.adb.android.AdbMdns
 import java.net.InetAddress
 import java.util.concurrent.Executors
@@ -48,7 +49,10 @@ class SetupService : Service() {
                     ?.getCharSequence(KEY_CODE)?.toString()?.trim().orEmpty()
                 handleCode(code)
             }
-            ACTION_APPLY -> applyWithoutPairing(intent.getBooleanExtra(EXTRA_SILENT, true))
+            ACTION_APPLY -> applyWithoutPairing(
+                intent.getBooleanExtra(EXTRA_SILENT, true),
+                intent.getBooleanExtra(EXTRA_UPDATED, false),
+            )
             else -> stopSelf()
         }
         return START_NOT_STICKY
@@ -110,16 +114,19 @@ class SetupService : Service() {
                 show(getString(R.string.notif_working_title), getString(R.string.notif_applying))
                 writeSilent(manager, silent = true, grantSelf = true)
                 finish(getString(R.string.result_done))
+            } catch (t: KeyBlockedException) {
+                Log.e(TAG, "key blocked", t)
+                finish(getString(R.string.err_key_blocked), failed = true)
             } catch (t: Throwable) {
                 Log.e(TAG, "setup failed at $step", t)
-                finish(getString(R.string.result_failed, "[$step] ${describe(t)}"))
+                finish(getString(R.string.result_failed, "[$step] ${describe(t)}"), failed = true)
             }
         }
     }
 
     // ---- 재적용/복원(페어링과 권한이 이미 있을 때) ---------------------------------------------
 
-    private fun applyWithoutPairing(silent: Boolean) {
+    private fun applyWithoutPairing(silent: Boolean, updated: Boolean) {
         show(getString(R.string.notif_working_title), getString(R.string.notif_connecting))
         executor.execute {
             try {
@@ -131,10 +138,26 @@ class SetupService : Service() {
                 val manager = AdbManager.get(this)
                 connect(manager)
                 writeSilent(manager, silent, grantSelf = false)
-                finish(getString(if (silent) R.string.result_done else R.string.result_restored))
+                finish(
+                    getString(
+                        when {
+                            !silent -> R.string.result_restored
+                            updated -> R.string.result_reapplied
+                            else -> R.string.result_done
+                        }
+                    )
+                )
+            } catch (t: KeyBlockedException) {
+                Log.e(TAG, "key blocked", t)
+                finish(getString(R.string.err_key_blocked), failed = true)
+            } catch (t: AdbPairingRequiredException) {
+                // 업데이트 등으로 페어링이 풀림: 코드 입력부터 다시 해야 한다.
+                Log.e(TAG, "pairing lost", t)
+                ShutterSound.setNeedsRepair(this, true)
+                finish(getString(R.string.err_repair), failed = true)
             } catch (t: Throwable) {
                 Log.e(TAG, "apply failed", t)
-                finish(getString(R.string.result_failed, describe(t)))
+                finish(getString(R.string.result_failed, describe(t)), failed = true)
             }
         }
     }
@@ -148,15 +171,22 @@ class SetupService : Service() {
         }
     }
 
+    /** 연결과 명령 실행은 됐는데 설정 키가 사라졌거나 값이 바뀌지 않는 경우(제조사가 막은 것으로 본다). */
+    private class KeyBlockedException(message: String) : Exception(message)
+
     private fun writeSilent(manager: AbsAdbConnectionManager, silent: Boolean, grantSelf: Boolean) {
-        sh(manager, "settings put system ${ShutterSound.KEY} ${if (silent) 0 else 1}")
+        if (!ShutterSound.isSupported(this)) throw KeyBlockedException(getString(R.string.err_key_missing))
+        val put = sh(manager, "settings put system ${ShutterSound.KEY} ${if (silent) 0 else 1}")
+        if (put.contains("Exception") || put.contains("Error")) throw KeyBlockedException(put.trim())
         if (grantSelf) {
             val user = Process.myUid() / 100000
             val output = sh(manager, "pm grant --user $user $packageName android.permission.WRITE_SECURE_SETTINGS")
             check(!output.contains("Exception") && !output.contains("Error")) { output.trim() }
         }
         ShutterSound.setWantSilent(this, silent)
-        check(ShutterSound.isSilent(this) == silent) { getString(R.string.err_verify) }
+        if (ShutterSound.isSilent(this) != silent) throw KeyBlockedException(getString(R.string.err_verify))
+        ShutterSound.setNeedsRepair(this, false)
+        ShutterSound.rememberSystemVersion(this)
     }
 
     /** shell 명령을 실행하고 출력 전체를 돌려준다. libadb 는 스트림 끝을 -1 이 아닌 IOException 으로 알린다. */
@@ -180,7 +210,7 @@ class SetupService : Service() {
         return out.toString(Charsets.UTF_8.name())
     }
 
-    private fun finish(message: String) {
+    private fun finish(message: String, failed: Boolean = false) {
         // 보안상 무선 디버깅은 항상 끈다. 권한이 있으면 직접, 없으면 연결이 살아있을 때 shell 로.
         runCatching {
             if (checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED) {
@@ -194,6 +224,8 @@ class SetupService : Service() {
             ID_RESULT,
             builder(getString(R.string.app_name), message).setAutoCancel(true).build()
         )
+        // 실패하면 별도 알림으로 GitHub 주소를 함께 안내한다.
+        if (failed) Notifier.github(this)
         stopSelf()
     }
 
@@ -251,9 +283,13 @@ class SetupService : Service() {
         private const val ID_RESULT = 2
         private const val ADB_WIFI_ENABLED = "adb_wifi_enabled"
 
-        fun start(context: Context, action: String, silent: Boolean = true) {
+        const val EXTRA_UPDATED = "updated"
+
+        fun start(context: Context, action: String, silent: Boolean = true, updated: Boolean = false) {
             context.startForegroundService(
-                Intent(context, SetupService::class.java).setAction(action).putExtra(EXTRA_SILENT, silent)
+                Intent(context, SetupService::class.java).setAction(action)
+                    .putExtra(EXTRA_SILENT, silent)
+                    .putExtra(EXTRA_UPDATED, updated)
             )
         }
     }

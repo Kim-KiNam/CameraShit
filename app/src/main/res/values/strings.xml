@@ -31,6 +31,17 @@
     <string name="result_done">완료: 셔터음이 꺼졌습니다. (소리 모드가 진동/무음일 때 동작)</string>
     <string name="result_restored">셔터음이 복원되었습니다.</string>
     <string name="result_failed">실패: %1$s</string>
+    <string name="result_reapplied">시스템 업데이트 후 셔터음 설정이 풀려서 자동으로 다시 적용했습니다.</string>
+    <string name="err_repair">페어링이 풀렸습니다. 눌러서 설정을 다시 진행하세요.</string>
+
+    <string name="notice_channel_name">안내</string>
+    <string name="notice_kept_after_update">시스템 업데이트 후에도 셔터음 설정이 유지되었습니다.</string>
+    <string name="notice_need_resetup">시스템 업데이트로 셔터음 설정이 풀렸습니다. 눌러서 다시 설정하세요.</string>
+    <string name="github_title">CameraShit 안내</string>
+    <string name="github_text">재설정이 계속 안 되거나 새 버전이 필요하면 확인하세요: %1$s</string>
+    <string name="github_note">문제가 있거나 새 버전이 필요하면:\nhttps://github.com/Kim-KiNam/CameraShit</string>
+    <string name="err_key_missing">이 기기에 셔터음 설정 항목이 없습니다.</string>
+    <string name="err_key_blocked">이번 시스템 업데이트 이후 셔터음 설정이 적용되지 않습니다. 앱 업데이트가 필요할 수 있습니다.</string>
     <string name="err_need_setup">먼저 1회 설정이 필요합니다.</string>
     <string name="err_connect">무선 디버깅에 연결하지 못했습니다. Wi-Fi 연결을 확인하세요.</string>
     <string name="err_verify">설정을 적용했지만 값이 바뀌지 않았습니다.</string>
