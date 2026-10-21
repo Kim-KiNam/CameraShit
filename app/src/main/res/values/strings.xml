@@ -15,7 +15,8 @@
     <string name="step3_guide">\'페어링 코드로 기기 페어링\'을 눌러 6자리 코드가 보이게 한 뒤, 화면 위쪽 알림창을 내려 \'코드 입력\'에 그 숫자를 적으세요.\n\n끝나면 무선 디버깅은 자동으로 꺼집니다.</string>
     <string name="step_open_wireless">무선 디버깅 열기</string>
 
-    <string name="channel_name">설정 진행</string>
+    <string name="channel_name">설정(코드 입력)</string>
+    <string name="channel_progress_name">진행 상황</string>
     <string name="notif_pair_title">셔터음 설정</string>
     <string name="notif_pair_waiting">무선 디버깅을 켜고 \'페어링 코드로 기기 페어링\' 화면을 열어 주세요.</string>
     <string name="notif_pair_ready">페어링 화면을 찾았습니다. 화면의 6자리 코드를 아래에 입력하세요.</string>

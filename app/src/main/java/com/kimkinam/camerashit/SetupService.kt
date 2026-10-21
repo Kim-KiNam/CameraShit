@@ -254,10 +254,19 @@ class SetupService : Service() {
         runCatching { AdbManager.get(this).disconnect() }
         ShutterSound.setLastResult(this, message, failed)
         stopForeground(STOP_FOREGROUND_REMOVE)
-        notificationManager().notify(
-            ID_RESULT,
-            builder(getString(R.string.app_name), message).setAutoCancel(true).build()
-        )
+        if (failed) {
+            // 실패는 읽을 시간이 필요하므로 일반 중요도로 잠시 보여주고 자동으로 사라진다.
+            Notifier.notice(this, message)
+        } else {
+            // 성공은 조용한 채널(소리/팝업 없음)로 잠깐만 보여주고 자동으로 사라진다.
+            notificationManager().notify(
+                ID_RESULT,
+                builder(getString(R.string.app_name), message, CHANNEL_PROGRESS, NotificationManager.IMPORTANCE_LOW)
+                    .setAutoCancel(true)
+                    .setTimeoutAfter(Notifier.TIMEOUT_SUCCESS_MS)
+                    .build()
+            )
+        }
         // 실패하면 별도 알림으로 GitHub 주소를 함께 안내한다.
         if (github) Notifier.github(this)
         stopSelf()
@@ -267,13 +276,14 @@ class SetupService : Service() {
 
     private fun notificationManager() = getSystemService(NotificationManager::class.java)
 
-    private fun builder(title: String, text: String): Notification.Builder {
-        val channel = NotificationChannel(CHANNEL, getString(R.string.channel_name), NotificationManager.IMPORTANCE_HIGH)
+    private fun builder(title: String, text: String, channelId: String, importance: Int): Notification.Builder {
+        val channelName = getString(if (channelId == CHANNEL_PAIR) R.string.channel_name else R.string.channel_progress_name)
+        val channel = NotificationChannel(channelId, channelName, importance)
         notificationManager().createNotificationChannel(channel)
         val open = PendingIntent.getActivity(
             this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
         )
-        return Notification.Builder(this, CHANNEL)
+        return Notification.Builder(this, channelId)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(text)
@@ -281,8 +291,16 @@ class SetupService : Service() {
             .setContentIntent(open)
     }
 
+    /**
+     * 포그라운드 서비스의 진행 알림. 코드 입력이 필요한 알림만 팝업(높은 중요도)으로 띄우고,
+     * 나머지 진행 상황은 조용한 채널로 보여준다(서비스가 끝나면 사라진다).
+     */
     private fun show(title: String, text: String, withInput: Boolean = false) {
-        val builder = builder(title, text).setOngoing(true)
+        val builder = if (withInput) {
+            builder(title, text, CHANNEL_PAIR, NotificationManager.IMPORTANCE_HIGH)
+        } else {
+            builder(title, text, CHANNEL_PROGRESS, NotificationManager.IMPORTANCE_LOW)
+        }.setOngoing(true)
         if (withInput) {
             val remoteInput = RemoteInput.Builder(KEY_CODE).setLabel(getString(R.string.notif_input_hint)).build()
             val reply = PendingIntent.getService(
@@ -314,7 +332,8 @@ class SetupService : Service() {
         private const val CONNECT_ATTEMPTS = 3
         private const val CONNECT_RETRY_DELAY_MS = 3_000L
         private const val KEY_CODE = "code"
-        private const val CHANNEL = "setup"
+        private const val CHANNEL_PAIR = "setup"
+        private const val CHANNEL_PROGRESS = "progress"
         private const val ID_FOREGROUND = 1
         private const val ID_RESULT = 2
         private const val ADB_WIFI_ENABLED = "adb_wifi_enabled"
