@@ -254,7 +254,6 @@ class SetupService : Service() {
     private class KeyBlockedException(message: String) : Exception(message)
 
     private fun writeSilent(manager: AbsAdbConnectionManager, silent: Boolean, grantSelf: Boolean) {
-        if (!ShutterSound.isSupported(this)) throw KeyBlockedException(getString(R.string.err_key_missing))
         val put = sh(manager, "settings put system ${ShutterSound.KEY} ${if (silent) 0 else 1}")
         if (put.contains("Exception") || put.contains("Error")) throw KeyBlockedException(put.trim())
         exemptFromAutoRevoke(manager)

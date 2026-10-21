@@ -31,11 +31,6 @@ class BootReceiver : BroadcastReceiver() {
     private fun handle(context: Context) {
         val updated = ShutterSound.systemUpdated(context)
         when {
-            // 업데이트로 설정 키 자체가 사라졌다면 앱을 고쳐야 한다.
-            !ShutterSound.isSupported(context) -> {
-                Notifier.notice(context, context.getString(R.string.err_key_blocked))
-                Notifier.github(context)
-            }
             HelperClient.isUsable(context) -> {
                 val result = HelperClient.apply(context, silent = true)
                 if (result.ok) {

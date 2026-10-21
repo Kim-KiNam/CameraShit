@@ -1,6 +1,7 @@
 package com.kimkinam.camerashit
 
 import android.content.Context
+import android.os.Build
 import android.provider.Settings
 
 /**
@@ -23,9 +24,15 @@ object ShutterSound {
     fun isSilent(context: Context): Boolean =
         Settings.System.getInt(context.contentResolver, KEY, 1) == 0
 
-    /** 이 기기에 해당 키가 존재하는지(삼성 여부 판단용). */
-    fun isSupported(context: Context): Boolean =
-        Settings.System.getString(context.contentResolver, KEY) != null
+    /**
+     * 지원 기기(삼성)인지 제조사로 판단한다. 설정 키가 있는지로 판단하면 안 된다: 삼성 폰도 이 값을 한 번도
+     * 바꾼 적이 없으면 키가 아직 만들어지지 않은 것이 정상이고(없으면 기본값 1), 값을 쓰는 순간 생긴다.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    fun isSupported(context: Context): Boolean = Build.MANUFACTURER.equals("samsung", ignoreCase = true)
+
+    /** 지원하지 않는다는 안내에 보여줄 기기 이름(제조사 + 모델). */
+    fun deviceName(): String = "${Build.MANUFACTURER} ${Build.MODEL}".trim()
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

@@ -126,13 +126,11 @@ class MainActivity : Activity() {
         toggle.isChecked = supported && ShutterSound.isSilent(this)
         updating = false
         toggle.visibility = if (setUp && supported) View.VISIBLE else View.GONE
-        status.setText(
-            when {
-                !supported -> R.string.status_unsupported
-                ShutterSound.isSilent(this) -> R.string.status_silent
-                else -> R.string.status_normal
-            }
-        )
+        status.text = when {
+            !supported -> getString(R.string.status_unsupported, ShutterSound.deviceName())
+            ShutterSound.isSilent(this) -> getString(R.string.status_silent)
+            else -> getString(R.string.status_normal)
+        }
         if (setUp || !supported) {
             hideStep()
         } else {
