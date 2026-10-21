@@ -2,4 +2,4 @@
 <!-- 어댑티브 아이콘은 가장자리가 마스크로 잘리므로 그림을 안쪽으로 들여서 넣는다. -->
 <inset xmlns:android="http://schemas.android.com/apk/res/android"
     android:drawable="@drawable/ic_launcher_art"
-    android:inset="17%" />
+    android:inset="14%" />
