@@ -20,3 +20,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "CameraShit"
 include(":app")
+include(":helper")

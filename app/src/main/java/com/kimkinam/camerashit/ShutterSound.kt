@@ -15,6 +15,7 @@ object ShutterSound {
     private const val PREF_WANT_SILENT = "want_silent"
     private const val PREF_LAST_RESULT = "last_result"
     private const val PREF_LAST_FAILED = "last_failed"
+    private const val PREF_HELPER_BROKEN = "helper_broken"
     private const val PREF_FINGERPRINT = "fingerprint"
     private const val PREF_NEEDS_REPAIR = "needs_repair"
 
@@ -57,6 +58,13 @@ object ShutterSound {
 
     fun setNeedsRepair(context: Context, value: Boolean) {
         prefs(context).edit().putBoolean(PREF_NEEDS_REPAIR, value).apply()
+    }
+
+    /** 도우미가 쓰기에 실패한 적이 있어 믿을 수 없는 상태(대체 경로 사용, 재설치 대상). */
+    fun helperBroken(context: Context): Boolean = prefs(context).getBoolean(PREF_HELPER_BROKEN, false)
+
+    fun setHelperBroken(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean(PREF_HELPER_BROKEN, value).apply()
     }
 
     /** 서비스가 마지막으로 남긴 결과 문구(앱 화면 표시용). */

@@ -1,0 +1,57 @@
+-- Merging decision tree log ---
+manifest
+ADDED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:2:1-25:12
+INJECTED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:2:1-25:12
+INJECTED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:2:1-25:12
+INJECTED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:2:1-25:12
+	package
+		INJECTED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml
+	android:versionName
+		INJECTED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml
+	android:versionCode
+		INJECTED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml
+	xmlns:android
+		ADDED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:2:11-69
+uses-permission#android.permission.WRITE_SETTINGS
+ADDED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:4:5-73
+	android:name
+		ADDED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:4:22-70
+uses-permission#android.permission.RECEIVE_BOOT_COMPLETED
+ADDED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:5:5-81
+	android:name
+		ADDED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:5:22-78
+application
+ADDED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:7:5-24:19
+INJECTED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:7:5-24:19
+	android:extractNativeLibs
+		INJECTED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml
+	android:label
+		ADDED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:9:9-42
+	android:allowBackup
+		ADDED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:8:9-36
+receiver#com.kimkinam.camerashit.helper.ControlReceiver
+ADDED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:15:9-23:20
+	android:exported
+		ADDED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:17:13-36
+	android:permission
+		ADDED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:18:13-83
+	android:name
+		ADDED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:16:13-44
+intent-filter#action:name:android.intent.action.BOOT_COMPLETED+action:name:com.kimkinam.camerashit.helper.SET
+ADDED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:19:13-22:29
+action#com.kimkinam.camerashit.helper.SET
+ADDED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:20:17-77
+	android:name
+		ADDED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:20:25-74
+action#android.intent.action.BOOT_COMPLETED
+ADDED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:21:17-79
+	android:name
+		ADDED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml:21:25-76
+uses-sdk
+INJECTED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml
+INJECTED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from C:\Users\KIMKINAM\Desktop\Project\CameraShit\helper\src\main\AndroidManifest.xml

@@ -19,6 +19,16 @@
         android:name="android.permission.WRITE_SECURE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
 
+    <!-- 도우미 호출 권한. 본 앱이 정의하고(같은 서명 키만 부여) 도우미의 수신기가 요구한다. -->
+    <permission
+        android:name="com.kimkinam.camerashit.permission.CONTROL_HELPER"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="com.kimkinam.camerashit.permission.CONTROL_HELPER" />
+
+    <queries>
+        <package android:name="com.kimkinam.camerashit.helper" />
+    </queries>
+
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"

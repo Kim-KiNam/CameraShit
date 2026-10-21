@@ -267,6 +267,8 @@ class SetupService : Service() {
         if (ShutterSound.isSilent(this) != silent) throw KeyBlockedException(getString(R.string.err_verify))
         ShutterSound.setNeedsRepair(this, false)
         ShutterSound.rememberSystemVersion(this)
+        // 이 연결이 열려 있는 김에 도우미를 설치/복구한다. 이후 켜기/끄기·재부팅 재적용은 Wi-Fi/adb 없이 도우미가 한다.
+        HelperInstaller.ensure(this, manager, silent)
     }
 
     /**

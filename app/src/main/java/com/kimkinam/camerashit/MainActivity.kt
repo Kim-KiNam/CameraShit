@@ -39,14 +39,55 @@ class MainActivity : Activity() {
         stepButton.setOnClickListener { stepAction() }
         toggle.setOnCheckedChangeListener { _, checked ->
             if (updating) return@setOnCheckedChangeListener
-            // 켜기/끄기 모두 무선 디버깅(Wi-Fi)이 필요하다. 없으면 시작하지 않고 스위치를 되돌린다.
-            if (!requireWifi()) {
-                refresh()
-                return@setOnCheckedChangeListener
-            }
-            SetupService.start(this, SetupService.ACTION_APPLY, silent = checked)
+            applyChoice(checked)
         }
     }
+
+    /**
+     * 켜기/끄기. 도우미가 있으면 Wi-Fi/무선 디버깅 없이 즉시 처리하고, 없거나 실패하면
+     * 예전 방식(온디바이스 무선 디버깅, Wi-Fi 필요)으로 대체한다.
+     */
+    private fun applyChoice(silent: Boolean) {
+        if (HelperClient.isUsable(this)) {
+            val app = applicationContext
+            Thread {
+                val result = HelperClient.apply(app, silent)
+                runOnUiThread {
+                    if (result.ok) {
+                        ShutterSound.setLastResult(
+                            app,
+                            getString(if (silent) R.string.result_done else R.string.result_restored),
+                        )
+                        refresh()
+                    } else {
+                        ShutterSound.setHelperBroken(app, true)
+                        fallbackApply(silent)
+                    }
+                }
+            }.start()
+        } else {
+            fallbackApply(silent)
+        }
+    }
+
+    private fun fallbackApply(silent: Boolean) {
+        // 대체 경로(무선 디버깅)도 쓸 수 없으면 설정을 다시 진행하도록 안내 화면으로 보낸다.
+        if (!adbReady()) {
+            ShutterSound.setNeedsRepair(this, true)
+            refresh()
+            return
+        }
+        // 무선 디버깅은 Wi-Fi 가 있어야 켜진다. 없으면 시작하지 않고 스위치를 되돌린다.
+        if (!requireWifi()) {
+            refresh()
+            return
+        }
+        SetupService.start(this, SetupService.ACTION_APPLY, silent = silent)
+    }
+
+    private fun adbReady() =
+        checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED &&
+            !ShutterSound.needsRepair(this)
 
     /** 설정 앱에 다녀온 뒤에도 이 함수가 다시 불려서 자동으로 다음 단계로 넘어간다. */
     override fun onResume() {
@@ -54,10 +95,11 @@ class MainActivity : Activity() {
         refresh()
     }
 
-    /** 권한이 있고 페어링도 유효해야 \'설정 완료\'. 페어링이 풀렸으면 다시 1~3단계를 보여준다. */
-    private fun isSetUp() =
-        checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED &&
-            !ShutterSound.needsRepair(this)
+    /**
+     * 도우미가 쓸 수 있거나, 대체 경로(권한 + 유효한 페어링)가 있으면 \'설정 완료\'.
+     * 둘 다 없으면 다시 1~3단계를 보여준다.
+     */
+    private fun isSetUp() = HelperClient.isUsable(this) || adbReady()
 
     private fun developerOptionsOn() =
         Settings.Global.getInt(contentResolver, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 1
@@ -68,11 +110,17 @@ class MainActivity : Activity() {
         val supported = ShutterSound.isSupported(this)
         val setUp = isSetUp()
         if (setUp && ShutterSound.isSilent(this)) ShutterSound.rememberSystemVersionIfMissing(this)
-        // 안전망: 원하는 상태(끔)인데 풀려 있고 Wi-Fi 가 있으면 앱을 연 김에 자동으로 다시 적용한다.
-        if (setUp && supported && ShutterSound.wantSilent(this) && !ShutterSound.isSilent(this) &&
-            !SetupService.running && Wifi.isConnected(this)
-        ) {
-            SetupService.start(this, SetupService.ACTION_APPLY, silent = true, auto = true)
+        // 안전망: 원하는 상태(끔)인데 풀려 있으면 앱을 연 김에 자동으로 다시 적용한다.
+        if (setUp && supported && ShutterSound.wantSilent(this) && !ShutterSound.isSilent(this) && !SetupService.running) {
+            if (HelperClient.isUsable(this)) {
+                val app = applicationContext
+                Thread {
+                    if (HelperClient.apply(app, silent = true).ok) runOnUiThread { refresh() }
+                    else ShutterSound.setHelperBroken(app, true)
+                }.start()
+            } else if (adbReady() && Wifi.isConnected(this)) {
+                SetupService.start(this, SetupService.ACTION_APPLY, silent = true, auto = true)
+            }
         }
         updating = true
         toggle.isChecked = supported && ShutterSound.isSilent(this)
