@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 어댑티브 아이콘은 가장자리가 마스크로 잘리므로 그림을 안쪽으로 들여서 넣는다. -->
+<!-- 이미 안전 영역 크기로 줄여서 가운데에 둔 그림(투명 배경)이라 그대로 쓴다. -->
 <inset xmlns:android="http://schemas.android.com/apk/res/android"
     android:drawable="@drawable/ic_launcher_art"
-    android:inset="14%" />
+    android:inset="0dp" />
