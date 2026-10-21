@@ -200,6 +200,7 @@ class SetupService : Service() {
         if (!ShutterSound.isSupported(this)) throw KeyBlockedException(getString(R.string.err_key_missing))
         val put = sh(manager, "settings put system ${ShutterSound.KEY} ${if (silent) 0 else 1}")
         if (put.contains("Exception") || put.contains("Error")) throw KeyBlockedException(put.trim())
+        exemptFromAutoRevoke(manager)
         if (grantSelf) {
             val user = Process.myUid() / 100000
             val output = sh(manager, "pm grant --user $user $packageName android.permission.WRITE_SECURE_SETTINGS")
@@ -209,6 +210,17 @@ class SetupService : Service() {
         if (ShutterSound.isSilent(this) != silent) throw KeyBlockedException(getString(R.string.err_verify))
         ShutterSound.setNeedsRepair(this, false)
         ShutterSound.rememberSystemVersion(this)
+    }
+
+    /**
+     * \'사용하지 않는 앱 관리\'(오래 안 쓴 앱의 권한 삭제/휴면)에서 이 앱을 제외한다.
+     * 휴면 상태가 되면 재부팅 신호를 못 받아 자동 재적용이 안 되기 때문이다. 핵심 기능이 아니라서 실패해도 무시한다.
+     */
+    private fun exemptFromAutoRevoke(manager: AbsAdbConnectionManager) {
+        runCatching {
+            val user = Process.myUid() / 100000
+            sh(manager, "appops set --user $user $packageName AUTO_REVOKE_PERMISSIONS_IF_UNUSED ignore")
+        }.onFailure { Log.w(TAG, "auto-revoke exemption failed", it) }
     }
 
     /** shell 명령을 실행하고 출력 전체를 돌려준다. libadb 는 스트림 끝을 -1 이 아닌 IOException 으로 알린다. */
