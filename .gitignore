@@ -1,4 +1,4 @@
-*.iml
+﻿*.iml
 .gradle/
 /local.properties
 /.idea/
@@ -7,7 +7,7 @@
 /captures/
 .externalNativeBuild/
 .cxx/
-app/build/
+**/build/
 *.apk
 !/releases/*.apk
 *.aab
