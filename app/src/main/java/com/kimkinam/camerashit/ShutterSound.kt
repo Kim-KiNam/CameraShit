@@ -17,6 +17,7 @@ object ShutterSound {
     private const val PREF_LAST_RESULT = "last_result"
     private const val PREF_LAST_FAILED = "last_failed"
     private const val PREF_HELPER_BROKEN = "helper_broken"
+    private const val PREF_SETUP_DONE = "setup_done_pending"
     private const val PREF_FINGERPRINT = "fingerprint"
     private const val PREF_NEEDS_REPAIR = "needs_repair"
 
@@ -65,6 +66,21 @@ object ShutterSound {
 
     fun setNeedsRepair(context: Context, value: Boolean) {
         prefs(context).edit().putBoolean(PREF_NEEDS_REPAIR, value).apply()
+    }
+
+    /**
+     * 처음 설정이 끝났을 때 사용자에게 보여줄 \'설정 완료\' 안내. 설정 앱에서 코드를 입력하는 동안 앱은 뒤에 있어서,
+     * 알림만으로는 놓치기 쉬우므로 앱으로 돌아왔을 때 한 번 더 팝업으로 보여준다.
+     */
+    fun setSetupDonePending(context: Context, message: String?) {
+        prefs(context).edit().putString(PREF_SETUP_DONE, message).apply()
+    }
+
+    /** 보여줄 설정 완료 안내가 있으면 돌려주고 지운다(한 번만 보여주기 위해). */
+    fun takeSetupDonePending(context: Context): String? {
+        val message = prefs(context).getString(PREF_SETUP_DONE, null)
+        if (message != null) setSetupDonePending(context, null)
+        return message
     }
 
     /** 도우미가 쓰기에 실패한 적이 있어 믿을 수 없는 상태(대체 경로 사용, 재설치 대상). */

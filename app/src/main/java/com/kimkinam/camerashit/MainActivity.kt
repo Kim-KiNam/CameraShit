@@ -143,6 +143,14 @@ class MainActivity : Activity() {
         val last = ShutterSound.lastResult(this)
         result.text = last.orEmpty()
         result.visibility = if (last.isNullOrEmpty()) View.GONE else View.VISIBLE
+        // 처음 설정이 끝난 뒤 처음 앱으로 돌아왔을 때 한 번만 \'설정 완료\'를 팝업으로 알린다.
+        ShutterSound.takeSetupDonePending(this)?.let { message ->
+            AlertDialog.Builder(this)
+                .setTitle(R.string.setup_done_title)
+                .setMessage(message)
+                .setPositiveButton(R.string.alert_ok, null)
+                .show()
+        }
     }
 
     private fun hideStep() {
@@ -221,7 +229,9 @@ class MainActivity : Activity() {
     private fun startFirst(vararg intents: Intent) {
         for (intent in intents) {
             try {
-                startActivity(intent)
+                // 설정 화면을 별도 작업으로 연다. 같은 작업에 쌓으면 설정을 마치고 앱 아이콘을 눌러도
+                // 앱 메인 화면이 아니라 맨 위의 설정 화면이 다시 나와서 \'설정 완료\' 안내를 놓치게 된다.
+                startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 return
             } catch (_: ActivityNotFoundException) {
             } catch (_: SecurityException) {

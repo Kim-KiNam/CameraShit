@@ -30,6 +30,9 @@
     <string name="notif_applying">적용 중…</string>
 
     <string name="result_done">완료: 셔터음이 꺼졌습니다. (소리 모드가 진동/무음일 때 동작)</string>
+    <string name="result_setup_done">설정이 완료되었습니다. 이제 카메라 셔터음이 꺼집니다.\n(소리 모드를 \'진동\' 또는 \'무음\'으로 두면 사진을 찍을 때 소리가 나지 않습니다)</string>
+    <string name="result_setup_done_basic">설정이 완료되었습니다. 이 폰에서는 셔터음을 켜고 끌 때 Wi-Fi가 필요합니다.\n(소리 모드를 \'진동\' 또는 \'무음\'으로 두면 사진을 찍을 때 소리가 나지 않습니다)</string>
+    <string name="setup_done_title">설정 완료</string>
     <string name="result_restored">셔터음이 복원되었습니다.</string>
     <string name="result_failed">실패: %1$s</string>
     <string name="result_reapplied">시스템 업데이트 후 셔터음 설정이 풀려서 자동으로 다시 적용했습니다.</string>

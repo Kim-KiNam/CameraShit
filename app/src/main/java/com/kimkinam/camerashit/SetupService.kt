@@ -137,8 +137,11 @@ class SetupService : Service() {
                 connect(manager)
                 step = "apply"
                 show(getString(R.string.notif_working_title), getString(R.string.notif_applying))
-                writeSilent(manager, silent = true, grantSelf = true)
-                finish(getString(R.string.result_done))
+                val helperOk = writeSilent(manager, silent = true, grantSelf = true)
+                // 처음 설정이 끝났음을 눈에 띄게 알린다(알림 + 앱으로 돌아왔을 때 팝업). 도우미가 없으면 그 사실도 알린다.
+                val message = getString(if (helperOk) R.string.result_setup_done else R.string.result_setup_done_basic)
+                ShutterSound.setSetupDonePending(this, message)
+                finish(message, important = true)
             } catch (t: KeyBlockedException) {
                 Log.e(TAG, "key blocked", t)
                 finish(getString(R.string.err_key_blocked), failed = true)
@@ -253,7 +256,8 @@ class SetupService : Service() {
     /** 연결과 명령 실행은 됐는데 설정 키가 사라졌거나 값이 바뀌지 않는 경우(제조사가 막은 것으로 본다). */
     private class KeyBlockedException(message: String) : Exception(message)
 
-    private fun writeSilent(manager: AbsAdbConnectionManager, silent: Boolean, grantSelf: Boolean) {
+    /** 값을 쓰고 확인한다. 반환값은 도우미 설치/확인이 잘 됐는지(실패해도 설정 자체는 성공이다). */
+    private fun writeSilent(manager: AbsAdbConnectionManager, silent: Boolean, grantSelf: Boolean): Boolean {
         val put = sh(manager, "settings put system ${ShutterSound.KEY} ${if (silent) 0 else 1}")
         if (put.contains("Exception") || put.contains("Error")) throw KeyBlockedException(put.trim())
         exemptFromAutoRevoke(manager)
@@ -267,7 +271,7 @@ class SetupService : Service() {
         ShutterSound.setNeedsRepair(this, false)
         ShutterSound.rememberSystemVersion(this)
         // 이 연결이 열려 있는 김에 도우미를 설치/복구한다. 이후 켜기/끄기·재부팅 재적용은 Wi-Fi/adb 없이 도우미가 한다.
-        HelperInstaller.ensure(this, manager, silent)
+        return HelperInstaller.ensure(this, manager, silent)
     }
 
     /**
@@ -302,7 +306,12 @@ class SetupService : Service() {
         return out.toString(Charsets.UTF_8.name())
     }
 
-    private fun finish(message: String, failed: Boolean = false, github: Boolean = failed) {
+    private fun finish(
+        message: String,
+        failed: Boolean = false,
+        github: Boolean = failed,
+        important: Boolean = false,
+    ) {
         // 보안상 무선 디버깅은 항상 끈다. 권한이 있으면 직접, 없으면 연결이 살아있을 때 shell 로.
         runCatching {
             if (checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED) {
@@ -316,8 +325,8 @@ class SetupService : Service() {
         // 줄 서 있는 다른 작업이 있으면 포그라운드/서비스는 유지하고, 마지막 작업이 끝날 때만 정리한다.
         val idle = release()
         if (idle) stopForeground(STOP_FOREGROUND_REMOVE)
-        if (failed) {
-            // 실패는 읽을 시간이 필요하므로 일반 중요도로 잠시 보여주고 자동으로 사라진다.
+        if (failed || important) {
+            // 실패와 \'처음 설정 완료\'는 놓치면 안 되므로 일반 중요도로 읽을 시간만큼 보여주고 자동으로 사라진다.
             Notifier.notice(this, message)
         } else {
             // 성공은 조용한 채널(소리/팝업 없음)로 잠깐만 보여주고 자동으로 사라진다.
