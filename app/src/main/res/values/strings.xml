@@ -10,20 +10,20 @@
     <string name="step1_guide">처음 한 번만 설정하면 됩니다. PC나 케이블은 필요 없습니다.\n\n설정 → 휴대전화 정보 → 소프트웨어 정보 → \'빌드번호\'를 7번 연속으로 누르세요. 화면 잠금(PIN/패턴)을 물으면 입력합니다.\n\n완료하고 이 앱으로 돌아오면 다음 단계로 자동으로 넘어갑니다.</string>
     <string name="step1_button">휴대전화 정보 열기</string>
     <string name="step2_title">2/3  무선 디버깅 켜기</string>
-    <string name="step2_guide">Wi-Fi에 연결된 상태에서 \'무선 디버깅\'을 켜고, 허용 팝업이 뜨면 \'허용\'을 누르세요.\n\n켠 뒤 이 앱으로 돌아오면 다음 단계로 넘어갑니다.</string>
+    <string name="step2_guide">아래 버튼을 누르면 \'개발자 옵션\' 화면이 열리고 \'무선 디버깅\' 항목이 색으로 강조됩니다.\n\n1. Wi-Fi에 연결되어 있는지 확인하세요. (모바일 데이터만 쓰면 켜지지 않습니다)\n2. 강조된 \'무선 디버깅\' 줄 오른쪽의 스위치를 눌러 켜세요.\n3. \'이 네트워크에서 무선 디버깅을 허용하시겠습니까?\' 팝업이 뜨면 \'허용\'을 누르세요.\n\n켠 뒤 이 앱으로 돌아오면 다음 단계로 자동으로 넘어갑니다.</string>
     <string name="step3_title">3/3  페어링 코드 입력</string>
-    <string name="step3_guide">\'페어링 코드로 기기 페어링\'을 눌러 6자리 코드가 보이게 한 뒤, 화면 위쪽 알림창을 내려 \'코드 입력\'에 그 숫자를 적으세요.\n\n끝나면 무선 디버깅은 자동으로 꺼집니다.</string>
+    <string name="step3_guide">이 폰이 \'이 앱을 믿어도 되는지\' 확인하는 단계입니다. 6자리 숫자를 한 번만 입력하면 됩니다.\n\n1. 아래 버튼을 눌러 개발자 옵션을 엽니다.\n2. \'무선 디버깅\' 줄의 스위치가 아니라 \'글자 부분\'을 눌러 안쪽 화면으로 들어갑니다.\n3. 안쪽 화면에서 \'페어링 코드로 기기 페어링\'(※ \'QR 코드로 기기 페어링\' 아님)을 누르면 6자리 숫자가 적힌 창이 뜹니다. 이 창은 닫지 마세요.\n4. 화면 맨 위를 아래로 쓸어내려 알림창을 열고, \'CameraShit\' 알림의 \'코드 입력\'을 눌러 그 6자리 숫자를 적고 보내기를 누릅니다.\n\n끝나면 무선 디버깅은 자동으로 꺼집니다.</string>
     <string name="step_open_wireless">무선 디버깅 열기</string>
 
     <string name="channel_name">설정(코드 입력)</string>
     <string name="channel_progress_name">진행 상황</string>
     <string name="notif_pair_title">셔터음 설정</string>
-    <string name="notif_pair_waiting">무선 디버깅을 켜고 \'페어링 코드로 기기 페어링\' 화면을 열어 주세요.</string>
-    <string name="notif_pair_ready">페어링 화면을 찾았습니다. 화면의 6자리 코드를 아래에 입력하세요.</string>
+    <string name="notif_pair_waiting">설정 → 개발자 옵션 → \'무선 디버깅\' 글자를 눌러 들어간 뒤, \'페어링 코드로 기기 페어링\'을 눌러 6자리 숫자 창을 띄워 주세요.</string>
+    <string name="notif_pair_ready">6자리 숫자 창을 찾았습니다. 그 창의 숫자를 아래 \'코드 입력\'에 적어 주세요.</string>
     <string name="notif_input_action">코드 입력</string>
     <string name="notif_input_hint">6자리 코드</string>
     <string name="notif_bad_code">6자리 숫자를 입력해 주세요.</string>
-    <string name="notif_no_pairing_screen">\'페어링 코드로 기기 페어링\' 화면이 열려 있어야 합니다.</string>
+    <string name="notif_no_pairing_screen">6자리 숫자 창이 열려 있어야 합니다. \'무선 디버깅\' 안쪽 화면에서 \'페어링 코드로 기기 페어링\'을 눌러 주세요.</string>
     <string name="notif_working_title">설정 중</string>
     <string name="notif_pairing">페어링 중…</string>
     <string name="notif_connecting">연결 중…</string>

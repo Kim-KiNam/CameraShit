@@ -12,8 +12,8 @@ android {
         // 높게 둔다: 설정 쓰기는 앱이 아니라 온디바이스 adb(shell)가 하므로 targetSdk 제한과 무관하고,
         // 낮은 targetSdk 는 Android 14+ 에서 일반 설치가 막힌다.
         targetSdk = 36
-        versionCode = 11
-        versionName = "0.3.2"
+        versionCode = 12
+        versionName = "0.3.3"
     }
 
     buildTypes {

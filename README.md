@@ -3,7 +3,7 @@
 삼성 갤럭시 카메라 셔터음을 **PC·케이블·USB 디버깅 없이** 끄는 앱.
 
 ## 설치
-1. [최신 APK 다운로드](https://github.com/Kim-KiNam/CameraShit/raw/main/releases/CameraShit-v0.3.2.apk)
+1. [최신 APK 다운로드](https://github.com/Kim-KiNam/CameraShit/raw/main/releases/CameraShit-v0.3.3.apk)
 2. 폰에서 APK를 열어 설치 ("출처를 알 수 없는 앱" 허용 필요)
 3. 앱을 열고 화면 안내를 따라 1회 설정 (개발자 옵션 → 무선 디버깅 → 알림창에 6자리 코드 입력)
 
