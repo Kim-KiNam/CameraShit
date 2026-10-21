@@ -31,7 +31,9 @@ class BootReceiver : BroadcastReceiver() {
                 ShutterSound.rememberSystemVersion(context)
                 Notifier.notice(context, context.getString(R.string.notice_kept_after_update))
             }
-            ready -> SetupService.start(context, SetupService.ACTION_APPLY, silent = true, updated = updated)
+            ready -> SetupService.start(
+                context, SetupService.ACTION_APPLY, silent = true, updated = updated, auto = true
+            )
             else -> {
                 Notifier.notice(context, context.getString(R.string.notice_need_resetup))
                 Notifier.github(context)

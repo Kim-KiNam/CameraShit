@@ -14,6 +14,7 @@ import android.content.pm.ServiceInfo
 import android.graphics.drawable.Icon
 import android.os.IBinder
 import android.os.Process
+import android.os.SystemClock
 import android.provider.Settings
 import android.util.Log
 import io.github.muntashirakon.adb.AbsAdbConnectionManager
@@ -42,9 +43,26 @@ class SetupService : Service() {
     @Volatile
     private var destroyed = false
 
+    /**
+     * 처리 중이거나 줄 서 있는 작업 수. 0 이 되기 전에는 서비스를 끝내지 않는다
+     * (끝내면서 줄 서 있던 작업을 강제로 끊어 InterruptedException 이 나던 문제를 막는다).
+     */
+    private val pending = java.util.concurrent.atomic.AtomicInteger(0)
+
+    @Volatile
+    private var queuedSilent: Boolean? = null
+
+    /** 작업 하나가 끝났음을 알리고, 더 남은 작업이 없으면 true. */
+    private fun release(): Boolean {
+        val remaining = pending.updateAndGet { maxOf(0, it - 1) }
+        if (remaining == 0) queuedSilent = null
+        return remaining == 0
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        running = true
         when (intent?.action) {
             ACTION_PAIR -> startPairing()
             ACTION_CODE -> {
@@ -55,6 +73,7 @@ class SetupService : Service() {
             ACTION_APPLY -> applyWithoutPairing(
                 intent.getBooleanExtra(EXTRA_SILENT, true),
                 intent.getBooleanExtra(EXTRA_UPDATED, false),
+                intent.getBooleanExtra(EXTRA_AUTO, false),
             )
             else -> stopSelf()
         }
@@ -62,6 +81,7 @@ class SetupService : Service() {
     }
 
     override fun onDestroy() {
+        running = false
         destroyed = true
         pairing = false
         mdns?.stop()
@@ -103,6 +123,7 @@ class SetupService : Service() {
             show(getString(R.string.notif_pair_title), getString(R.string.notif_no_pairing_screen), withInput = true)
             return
         }
+        pending.incrementAndGet()
         executor.execute {
             var step = "init"
             try {
@@ -130,15 +151,30 @@ class SetupService : Service() {
 
     // ---- 재적용/복원(페어링과 권한이 이미 있을 때) ---------------------------------------------
 
-    private fun applyWithoutPairing(silent: Boolean, updated: Boolean) {
+    /**
+     * @param auto 사용자가 누른 게 아니라 부팅/예약 작업으로 시작된 경우. Wi-Fi 가 아직 없으면 실패로 알리는 대신
+     *             잠깐 기다리고, 그래도 없으면 Wi-Fi 가 연결될 때 자동으로 다시 시도하도록 예약한다.
+     */
+    private fun applyWithoutPairing(silent: Boolean, updated: Boolean, auto: Boolean) {
+        // startForegroundService 로 시작했으므로 중복 요청이어도 반드시 startForeground 는 호출해야 한다.
         show(getString(R.string.notif_working_title), getString(R.string.notif_connecting))
-        // Wi-Fi 가 없으면 오래 기다리다 실패하지 말고 바로 알린다(버그가 아니므로 GitHub 안내는 생략).
-        if (!Wifi.isConnected(this)) {
-            finish(getString(R.string.err_no_wifi), failed = true, github = false)
-            return
+        synchronized(this) {
+            // 같은 목표 상태의 요청이 이미 처리 중이거나 줄 서 있으면 겹치는 요청은 버린다.
+            if (pending.get() > 0 && queuedSilent == silent) return
+            queuedSilent = silent
+            pending.incrementAndGet()
         }
         executor.execute {
             try {
+                if (!Wifi.isConnected(this) && !(auto && waitForWifi())) {
+                    if (auto) {
+                        deferUntilWifi()
+                    } else {
+                        // 사용자가 직접 누른 경우는 오래 기다리지 말고 바로 알린다(버그가 아니므로 GitHub 안내는 생략).
+                        finish(getString(R.string.err_no_wifi), failed = true, github = false)
+                    }
+                    return@execute
+                }
                 if (checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) != PackageManager.PERMISSION_GRANTED) {
                     throw IllegalStateException(getString(R.string.err_need_setup))
                 }
@@ -172,6 +208,27 @@ class SetupService : Service() {
     }
 
     // ---- 공통 --------------------------------------------------------------------------------
+
+    /** 부팅 직후에는 Wi-Fi 가 몇 초 늦게 붙으므로 잠깐 기다린다. 연결되면 true. */
+    private fun waitForWifi(): Boolean {
+        val deadline = SystemClock.elapsedRealtime() + WIFI_WAIT_MS
+        while (SystemClock.elapsedRealtime() < deadline) {
+            if (destroyed) return false
+            if (Wifi.isConnected(this)) return true
+            Thread.sleep(2_000)
+        }
+        return Wifi.isConnected(this)
+    }
+
+    /** 기다려도 Wi-Fi 가 없을 때: 연결되는 순간 자동으로 다시 시도하도록 예약하고, 안내는 한 번만 한다. */
+    private fun deferUntilWifi() {
+        val firstTime = WifiRetryJob.schedule(this)
+        if (firstTime) Notifier.notice(this, getString(R.string.notice_pending_wifi))
+        if (release()) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+        }
+    }
 
     /**
      * 무선 디버깅을 막 켠 직후(특히 부팅 직후 Wi-Fi 안정 전)에는 mDNS 로 주소를 찾는 데 시간이 걸려
@@ -252,8 +309,12 @@ class SetupService : Service() {
             }
         }
         runCatching { AdbManager.get(this).disconnect() }
+        // 이번 시도로 끝났으므로 Wi-Fi 대기용 예약 작업은 더 필요 없다.
+        WifiRetryJob.cancel(this)
         ShutterSound.setLastResult(this, message, failed)
-        stopForeground(STOP_FOREGROUND_REMOVE)
+        // 줄 서 있는 다른 작업이 있으면 포그라운드/서비스는 유지하고, 마지막 작업이 끝날 때만 정리한다.
+        val idle = release()
+        if (idle) stopForeground(STOP_FOREGROUND_REMOVE)
         if (failed) {
             // 실패는 읽을 시간이 필요하므로 일반 중요도로 잠시 보여주고 자동으로 사라진다.
             Notifier.notice(this, message)
@@ -269,7 +330,7 @@ class SetupService : Service() {
         }
         // 실패하면 별도 알림으로 GitHub 주소를 함께 안내한다.
         if (github) Notifier.github(this)
-        stopSelf()
+        if (idle) stopSelf()
     }
 
     private fun describe(t: Throwable): String = "${t.javaClass.simpleName}: ${t.message}"
@@ -328,6 +389,10 @@ class SetupService : Service() {
         @Volatile
         var pairing = false
 
+        /** 서비스가 작업 중인지(앱을 열 때 자동 재적용이 겹쳐 시작되지 않도록). */
+        @Volatile
+        var running = false
+
         private const val TAG = "CameraShit"
         private const val CONNECT_ATTEMPTS = 3
         private const val CONNECT_RETRY_DELAY_MS = 3_000L
@@ -339,12 +404,21 @@ class SetupService : Service() {
         private const val ADB_WIFI_ENABLED = "adb_wifi_enabled"
 
         const val EXTRA_UPDATED = "updated"
+        const val EXTRA_AUTO = "auto"
+        private const val WIFI_WAIT_MS = 60_000L
 
-        fun start(context: Context, action: String, silent: Boolean = true, updated: Boolean = false) {
+        fun start(
+            context: Context,
+            action: String,
+            silent: Boolean = true,
+            updated: Boolean = false,
+            auto: Boolean = false,
+        ) {
             context.startForegroundService(
                 Intent(context, SetupService::class.java).setAction(action)
                     .putExtra(EXTRA_SILENT, silent)
                     .putExtra(EXTRA_UPDATED, updated)
+                    .putExtra(EXTRA_AUTO, auto)
             )
         }
     }

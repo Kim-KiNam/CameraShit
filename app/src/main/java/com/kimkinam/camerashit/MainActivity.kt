@@ -68,6 +68,12 @@ class MainActivity : Activity() {
         val supported = ShutterSound.isSupported(this)
         val setUp = isSetUp()
         if (setUp && ShutterSound.isSilent(this)) ShutterSound.rememberSystemVersionIfMissing(this)
+        // 안전망: 원하는 상태(끔)인데 풀려 있고 Wi-Fi 가 있으면 앱을 연 김에 자동으로 다시 적용한다.
+        if (setUp && supported && ShutterSound.wantSilent(this) && !ShutterSound.isSilent(this) &&
+            !SetupService.running && Wifi.isConnected(this)
+        ) {
+            SetupService.start(this, SetupService.ACTION_APPLY, silent = true, auto = true)
+        }
         updating = true
         toggle.isChecked = supported && ShutterSound.isSilent(this)
         updating = false
