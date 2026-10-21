@@ -78,6 +78,10 @@ class MainActivity : Activity() {
         } else {
             showStep()
         }
+        // 지난 실패 기록은 원하는 상태가 이미 맞게 되어 있으면 더 보여주지 않는다.
+        if (ShutterSound.lastResultFailed(this) && ShutterSound.isSilent(this) == ShutterSound.wantSilent(this)) {
+            ShutterSound.setLastResult(this, null)
+        }
         val last = ShutterSound.lastResult(this)
         result.text = last.orEmpty()
         result.visibility = if (last.isNullOrEmpty()) View.GONE else View.VISIBLE

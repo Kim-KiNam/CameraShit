@@ -14,6 +14,7 @@ object ShutterSound {
     private const val PREFS = "camerashit"
     private const val PREF_WANT_SILENT = "want_silent"
     private const val PREF_LAST_RESULT = "last_result"
+    private const val PREF_LAST_FAILED = "last_failed"
     private const val PREF_FINGERPRINT = "fingerprint"
     private const val PREF_NEEDS_REPAIR = "needs_repair"
 
@@ -61,7 +62,9 @@ object ShutterSound {
     /** 서비스가 마지막으로 남긴 결과 문구(앱 화면 표시용). */
     fun lastResult(context: Context): String? = prefs(context).getString(PREF_LAST_RESULT, null)
 
-    fun setLastResult(context: Context, value: String?) {
-        prefs(context).edit().putString(PREF_LAST_RESULT, value).apply()
+    fun lastResultFailed(context: Context): Boolean = prefs(context).getBoolean(PREF_LAST_FAILED, false)
+
+    fun setLastResult(context: Context, value: String?, failed: Boolean = false) {
+        prefs(context).edit().putString(PREF_LAST_RESULT, value).putBoolean(PREF_LAST_FAILED, failed).apply()
     }
 }

@@ -39,6 +39,9 @@ class SetupService : Service() {
     @Volatile
     private var pairingPort = -1
 
+    @Volatile
+    private var destroyed = false
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -59,6 +62,7 @@ class SetupService : Service() {
     }
 
     override fun onDestroy() {
+        destroyed = true
         pairing = false
         mdns?.stop()
         executor.shutdownNow()
@@ -164,11 +168,24 @@ class SetupService : Service() {
 
     // ---- 공통 --------------------------------------------------------------------------------
 
+    /**
+     * 무선 디버깅을 막 켠 직후(특히 부팅 직후 Wi-Fi 안정 전)에는 mDNS 로 주소를 찾는 데 시간이 걸려
+     * 타임아웃(InterruptedException)이 날 수 있어서 몇 번 재시도한다. 서비스가 종료되는 중이면 중단한다.
+     */
     private fun connect(manager: AbsAdbConnectionManager) {
         manager.setTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-        if (!manager.autoConnect(this, 15_000)) {
-            check(manager.isConnected) { getString(R.string.err_connect) }
+        var lastError: InterruptedException? = null
+        repeat(CONNECT_ATTEMPTS) { attempt ->
+            if (attempt > 0) Thread.sleep(CONNECT_RETRY_DELAY_MS)
+            try {
+                if (manager.autoConnect(this, 15_000) || manager.isConnected) return
+            } catch (e: InterruptedException) {
+                if (destroyed) throw e
+                lastError = e
+            }
         }
+        lastError?.let { throw it }
+        throw IllegalStateException(getString(R.string.err_connect))
     }
 
     /** 연결과 명령 실행은 됐는데 설정 키가 사라졌거나 값이 바뀌지 않는 경우(제조사가 막은 것으로 본다). */
@@ -218,7 +235,7 @@ class SetupService : Service() {
             }
         }
         runCatching { AdbManager.get(this).disconnect() }
-        ShutterSound.setLastResult(this, message)
+        ShutterSound.setLastResult(this, message, failed)
         stopForeground(STOP_FOREGROUND_REMOVE)
         notificationManager().notify(
             ID_RESULT,
@@ -277,6 +294,8 @@ class SetupService : Service() {
         var pairing = false
 
         private const val TAG = "CameraShit"
+        private const val CONNECT_ATTEMPTS = 3
+        private const val CONNECT_RETRY_DELAY_MS = 3_000L
         private const val KEY_CODE = "code"
         private const val CHANNEL = "setup"
         private const val ID_FOREGROUND = 1
