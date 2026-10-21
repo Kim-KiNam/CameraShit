@@ -40,6 +40,11 @@
     <string name="github_title">CameraShit 안내</string>
     <string name="github_text">재설정이 계속 안 되거나 새 버전이 필요하면 확인하세요: %1$s</string>
     <string name="github_note">문제가 있거나 새 버전이 필요하면:\nhttps://github.com/Kim-KiNam/CameraShit</string>
+    <string name="err_no_wifi">Wi-Fi에 연결하세요. 셔터음 켜기/끄기는 Wi-Fi가 연결된 상태에서만 할 수 있습니다.</string>
+    <string name="alert_wifi_title">Wi-Fi에 연결하세요</string>
+    <string name="alert_wifi_message">셔터음을 켜고 끄려면 Wi-Fi가 연결되어 있어야 합니다. Wi-Fi에 연결한 뒤 다시 시도해 주세요.</string>
+    <string name="alert_ok">확인</string>
+    <string name="alert_open_wifi">Wi-Fi 설정</string>
     <string name="err_key_missing">이 기기에 셔터음 설정 항목이 없습니다.</string>
     <string name="err_key_blocked">이번 시스템 업데이트 이후 셔터음 설정이 적용되지 않습니다. 앱 업데이트가 필요할 수 있습니다.</string>
     <string name="err_need_setup">먼저 1회 설정이 필요합니다.</string>

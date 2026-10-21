@@ -132,6 +132,11 @@ class SetupService : Service() {
 
     private fun applyWithoutPairing(silent: Boolean, updated: Boolean) {
         show(getString(R.string.notif_working_title), getString(R.string.notif_connecting))
+        // Wi-Fi 가 없으면 오래 기다리다 실패하지 말고 바로 알린다(버그가 아니므로 GitHub 안내는 생략).
+        if (!Wifi.isConnected(this)) {
+            finish(getString(R.string.err_no_wifi), failed = true, github = false)
+            return
+        }
         executor.execute {
             try {
                 if (checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) != PackageManager.PERMISSION_GRANTED) {
@@ -227,7 +232,7 @@ class SetupService : Service() {
         return out.toString(Charsets.UTF_8.name())
     }
 
-    private fun finish(message: String, failed: Boolean = false) {
+    private fun finish(message: String, failed: Boolean = false, github: Boolean = failed) {
         // 보안상 무선 디버깅은 항상 끈다. 권한이 있으면 직접, 없으면 연결이 살아있을 때 shell 로.
         runCatching {
             if (checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED) {
@@ -242,7 +247,7 @@ class SetupService : Service() {
             builder(getString(R.string.app_name), message).setAutoCancel(true).build()
         )
         // 실패하면 별도 알림으로 GitHub 주소를 함께 안내한다.
-        if (failed) Notifier.github(this)
+        if (github) Notifier.github(this)
         stopSelf()
     }
 
@@ -257,7 +262,7 @@ class SetupService : Service() {
             this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
         )
         return Notification.Builder(this, CHANNEL)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(text)
             .setStyle(Notification.BigTextStyle().bigText(text))
@@ -274,7 +279,7 @@ class SetupService : Service() {
                 PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
             val action = Notification.Action.Builder(
-                Icon.createWithResource(this, R.drawable.ic_launcher_foreground),
+                Icon.createWithResource(this, R.drawable.ic_notification),
                 getString(R.string.notif_input_action),
                 reply
             ).addRemoteInput(remoteInput).build()

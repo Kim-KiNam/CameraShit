@@ -31,7 +31,7 @@ object Notifier {
             NotificationChannel(CHANNEL, context.getString(R.string.notice_channel_name), NotificationManager.IMPORTANCE_DEFAULT)
         )
         val notification = Notification.Builder(context, CHANNEL)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(text)
             .setStyle(Notification.BigTextStyle().bigText(text))

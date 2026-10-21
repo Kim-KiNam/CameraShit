@@ -1,12 +1,5 @@
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M30,38h10l3,-5h22l3,5h10a4,4 0,0 1,4 4v28a4,4 0,0 1,-4 4H30a4,4 0,0 1,-4 -4V42a4,4 0,0 1,4 -4z" />
-    <path
-        android:fillColor="#37474F"
-        android:pathData="M54,46m-11,0a11,11 0,1 1,22 0a11,11 0,1 1,-22 0" />
-</vector>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 어댑티브 아이콘은 가장자리가 마스크로 잘리므로 그림을 안쪽으로 들여서 넣는다. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_launcher_art"
+    android:inset="17%" />

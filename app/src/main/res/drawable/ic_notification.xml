@@ -1,0 +1,10 @@
+<!-- 알림 작은 아이콘은 단색(알파)만 쓸 수 있어서 런처 아이콘과 별도로 둔다. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,38h10l3,-5h22l3,5h10a4,4 0,0 1,4 4v28a4,4 0,0 1,-4 4H30a4,4 0,0 1,-4 -4V42a4,4 0,0 1,4 -4z" />
+</vector>

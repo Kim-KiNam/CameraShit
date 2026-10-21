@@ -2,6 +2,7 @@ package com.kimkinam.camerashit
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -38,6 +39,11 @@ class MainActivity : Activity() {
         stepButton.setOnClickListener { stepAction() }
         toggle.setOnCheckedChangeListener { _, checked ->
             if (updating) return@setOnCheckedChangeListener
+            // 켜기/끄기 모두 무선 디버깅(Wi-Fi)이 필요하다. 없으면 시작하지 않고 스위치를 되돌린다.
+            if (!requireWifi()) {
+                refresh()
+                return@setOnCheckedChangeListener
+            }
             SetupService.start(this, SetupService.ACTION_APPLY, silent = checked)
         }
     }
@@ -108,7 +114,7 @@ class MainActivity : Activity() {
                 stepTitle.setText(R.string.step2_title)
                 guide.setText(R.string.step2_guide)
                 stepButton.setText(R.string.step_open_wireless)
-                stepAction = { openWirelessDebugging() }
+                stepAction = { if (requireWifi()) openWirelessDebugging() }
             }
             else -> {
                 stepTitle.setText(R.string.step3_title)
@@ -123,6 +129,18 @@ class MainActivity : Activity() {
                 }
             }
         }
+    }
+
+    /** Wi-Fi 가 연결되어 있으면 true. 아니면 안내 팝업을 띄우고 false. */
+    private fun requireWifi(): Boolean {
+        if (Wifi.isConnected(this)) return true
+        AlertDialog.Builder(this)
+            .setTitle(R.string.alert_wifi_title)
+            .setMessage(R.string.alert_wifi_message)
+            .setPositiveButton(R.string.alert_ok, null)
+            .setNeutralButton(R.string.alert_open_wifi) { _, _ -> startFirst(Intent(Settings.ACTION_WIFI_SETTINGS)) }
+            .show()
+        return false
     }
 
     /** 알림(코드 입력)과 Android 17 로컬 네트워크 권한이 있는지 확인하고, 없으면 요청한다. */
