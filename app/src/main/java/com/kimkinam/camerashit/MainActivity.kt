@@ -276,9 +276,10 @@ class MainActivity : Activity() {
     private fun startFirst(vararg intents: Intent) {
         for (intent in intents) {
             try {
-                // 설정 화면을 별도 작업으로 연다. 같은 작업에 쌓으면 설정을 마치고 앱 아이콘을 눌러도
-                // 앱 메인 화면이 아니라 맨 위의 설정 화면이 다시 나와서 \'설정 완료\' 안내를 놓치게 된다.
-                startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                // 설정 화면을 별도 작업으로 열고, 설정 앱에 남아 있던 다른 화면(예: 앱 정보)은 비운다.
+                // 같은 작업에 쌓으면 앱 아이콘을 눌러도 설정 화면이 나와 \'설정 완료\' 안내를 놓치고, 비우지 않으면
+                // 개발자 옵션 요청이 이미 떠 있던 엉뚱한 화면으로 되돌아간다(실측).
+                startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
                 return
             } catch (_: ActivityNotFoundException) {
             } catch (_: SecurityException) {

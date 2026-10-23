@@ -25,6 +25,8 @@ object HelperClient {
     private const val ACTION_SET = "$PKG.SET"
     private const val RESULT_OK = 1
     private const val RESULT_FAILED = 2
+    /** 설치 직후 확인에서, 첫 요청 뒤 사용자가 도우미의 권한 확인 화면을 끝낼 때까지 기다리는 시간. */
+    private const val PATIENT_PAUSE_MS = 20_000L
 
     data class Result(val ok: Boolean, val message: String? = null)
 
@@ -64,14 +66,17 @@ object HelperClient {
      * 응답이 비어 올 수 있어서 한 번만 다시 보낸다. 그래도 응답이 없으면 "값이 이번 호출로 바뀐 경우"에만
      * 성공으로 본다(바뀌었다면 도우미가 쓴 것이다).
      */
-    fun apply(context: Context, silent: Boolean, timeoutMs: Long = 4_000): Result {
+    fun apply(context: Context, silent: Boolean, timeoutMs: Long = 4_000, patient: Boolean = false): Result {
         if (!isInstalled(context)) return Result(false, "helper not installed")
         val app = context.applicationContext
         val before = ShutterSound.isSilent(app)
 
+        // 방금 설치된 구형(targetSdk 22) 도우미는 처음 실행될 때 시스템이 \'권한 확인\' 화면을 띄우고, 사용자가 그 화면을
+        // 끝내기 전에는 요청에 응답하지 못한다(실측). 요청을 여러 번 보내면 그 화면이 그만큼 다시 뜨므로, 많이 보내지 않는다:
+        // 한 번 보내고, 응답이 없으면 사용자가 화면을 끝낼 시간을 준 뒤 **딱 한 번만** 다시 보낸다.
         var ack = send(app, silent, timeoutMs)
         if (ack.code == 0) {
-            Thread.sleep(500)
+            Thread.sleep(if (patient) PATIENT_PAUSE_MS else 500L)
             ack = send(app, silent, timeoutMs)
         }
         if (ack.code == RESULT_FAILED) return Result(false, ack.data)

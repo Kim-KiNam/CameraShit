@@ -31,6 +31,7 @@
     <string name="notif_pair_retry">페어링에 실패했습니다. 숫자 창이 닫혔다면 \'페어링 코드로 기기 페어링\'을 다시 눌러 새 6자리 숫자를 띄우고, 그 숫자를 입력해 주세요.</string>
     <string name="notif_cancel_action">취소</string>
     <string name="notice_pair_timeout">코드가 입력되지 않아 설정을 중단했습니다. 다시 하려면 앱을 열어 주세요.</string>
+    <string name="notice_play_protect">도우미 설치가 Google Play 프로텍트의 확인을 기다리고 있습니다. 화면에 \'안전하지 않은 앱 차단됨\' 팝업이 있으면 \'세부정보 더보기 → 무시하고 설치하기\'를 눌러 주세요. 누르지 않아도 셔터음 설정은 적용되어 있으며, 이 경우 켜고 끌 때 Wi-Fi가 필요한 방식으로 동작합니다.</string>
     <string name="notice_pair_cancelled">설정을 취소했습니다. 다시 하려면 앱을 열어 주세요.</string>
     <string name="notice_turn_off_wireless">※ 무선 디버깅이 아직 켜져 있을 수 있습니다. 설정 → 개발자 옵션 → \'무선 디버깅\'을 직접 꺼 주세요.</string>
     <string name="notice_wifi_connected_open_app">Wi-Fi가 연결되었습니다. 눌러서 앱을 열면 셔터음 설정이 자동으로 다시 적용됩니다.</string>
