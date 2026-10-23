@@ -18,6 +18,8 @@ object ShutterSound {
     private const val PREF_LAST_FAILED = "last_failed"
     private const val PREF_HELPER_BROKEN = "helper_broken"
     private const val PREF_SETUP_DONE = "setup_done_pending"
+    private const val PREF_PERMISSION_ASKED = "permission_asked"
+    private const val PREF_HELPER_ATTEMPT = "helper_install_attempt"
     private const val PREF_FINGERPRINT = "fingerprint"
     private const val PREF_NEEDS_REPAIR = "needs_repair"
 
@@ -81,6 +83,21 @@ object ShutterSound {
         val message = prefs(context).getString(PREF_SETUP_DONE, null)
         if (message != null) setSetupDonePending(context, null)
         return message
+    }
+
+    /** 권한 팝업을 이미 한 번 띄운 적이 있는지(그 뒤에도 허용이 없으면 \'다시 묻지 않음\'일 수 있다). */
+    fun permissionAsked(context: Context): Boolean = prefs(context).getBoolean(PREF_PERMISSION_ASKED, false)
+
+    fun setPermissionAsked(context: Context) {
+        prefs(context).edit().putBoolean(PREF_PERMISSION_ASKED, true).apply()
+    }
+
+    /** 도우미 (재)설치 자동 시도는 하루에 한 번만 한다(실패가 반복되어도 무선 디버깅을 계속 켜지 않도록). */
+    fun helperInstallDue(context: Context): Boolean =
+        System.currentTimeMillis() - prefs(context).getLong(PREF_HELPER_ATTEMPT, 0L) > 24L * 60 * 60 * 1000
+
+    fun markHelperInstallAttempt(context: Context) {
+        prefs(context).edit().putLong(PREF_HELPER_ATTEMPT, System.currentTimeMillis()).apply()
     }
 
     /** 도우미가 쓰기에 실패한 적이 있어 믿을 수 없는 상태(대체 경로 사용, 재설치 대상). */

@@ -8,12 +8,13 @@ android {
 
     defaultConfig {
         applicationId = "com.kimkinam.camerashit"
-        minSdk = 26
+        // 무선 디버깅(페어링 코드)은 Android 11(API 30)부터 있다. 그보다 낮은 버전은 이 앱의 설정 방식을 쓸 수 없다.
+        minSdk = 30
         // 높게 둔다: 설정 쓰기는 앱이 아니라 온디바이스 adb(shell)가 하므로 targetSdk 제한과 무관하고,
         // 낮은 targetSdk 는 Android 14+ 에서 일반 설치가 막힌다.
         targetSdk = 36
-        versionCode = 14
-        versionName = "0.3.5"
+        versionCode = 15
+        versionName = "0.3.6"
     }
 
     buildTypes {

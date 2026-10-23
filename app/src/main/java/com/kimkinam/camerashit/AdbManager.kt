@@ -95,6 +95,9 @@ class AdbManager private constructor(context: Context) : AbsAdbConnectionManager
         @Volatile
         private var instance: AdbManager? = null
 
+        /** 이미 만들어진 인스턴스만 돌려준다(없으면 null). 키 생성 같은 무거운 작업을 피해야 할 때 쓴다. */
+        fun peek(): AdbManager? = instance
+
         fun get(context: Context): AdbManager =
             instance ?: synchronized(this) {
                 instance ?: AdbManager(context.applicationContext).also { instance = it }

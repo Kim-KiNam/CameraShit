@@ -12,7 +12,10 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.graphics.drawable.Icon
+import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.Process
 import android.os.SystemClock
 import android.provider.Settings
@@ -75,6 +78,7 @@ class SetupService : Service() {
                 intent.getBooleanExtra(EXTRA_UPDATED, false),
                 intent.getBooleanExtra(EXTRA_AUTO, false),
             )
+            ACTION_CANCEL -> cancelPairing(timedOut = false)
             else -> stopSelf()
         }
         return START_NOT_STICKY
@@ -84,6 +88,7 @@ class SetupService : Service() {
         running = false
         destroyed = true
         pairing = false
+        mainHandler.removeCallbacks(pairingTimeout)
         mdns?.stop()
         executor.shutdownNow()
         super.onDestroy()
@@ -91,8 +96,15 @@ class SetupService : Service() {
 
     // ---- 페어링 흐름 -------------------------------------------------------------------------
 
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    /** 코드를 오래 입력하지 않으면 알림과 서비스가 계속 남지 않도록 일정 시간 뒤 스스로 중단한다. */
+    private val pairingTimeout = Runnable { cancelPairing(timedOut = true) }
+
     private fun startPairing() {
         pairing = true
+        mainHandler.removeCallbacks(pairingTimeout)
+        mainHandler.postDelayed(pairingTimeout, PAIRING_TIMEOUT_MS)
         show(
             getString(R.string.notif_pair_title),
             getString(R.string.notif_pair_waiting),
@@ -123,6 +135,8 @@ class SetupService : Service() {
             show(getString(R.string.notif_pair_title), getString(R.string.notif_no_pairing_screen), withInput = true)
             return
         }
+        // 코드 처리를 시작했으니 대기 제한 시간은 멈춘다(실패해서 다시 기다리게 되면 다시 건다).
+        mainHandler.removeCallbacks(pairingTimeout)
         pending.incrementAndGet()
         executor.execute {
             var step = "init"
@@ -147,9 +161,40 @@ class SetupService : Service() {
                 finish(getString(R.string.err_key_blocked), failed = true)
             } catch (t: Throwable) {
                 Log.e(TAG, "setup failed at $step", t)
-                finish(getString(R.string.result_failed, "[$step] ${describe(t)}"), failed = true)
+                if (step == "pair") {
+                    // 코드를 잘못 입력했거나 만료된 경우가 대부분이다. 끝내지 말고 새 코드를 다시 받는다.
+                    retryPairing()
+                } else {
+                    finish(getString(R.string.result_failed, "[$step] ${describe(t)}"), failed = true)
+                }
             }
         }
+    }
+
+    /** 페어링 단계 실패: 서비스를 끝내지 않고 새 코드를 다시 기다린다. 제한 시간은 처음부터 다시 센다. */
+    private fun retryPairing() {
+        release()
+        mainHandler.post {
+            mainHandler.removeCallbacks(pairingTimeout)
+            mainHandler.postDelayed(pairingTimeout, PAIRING_TIMEOUT_MS)
+        }
+        show(getString(R.string.notif_pair_title), getString(R.string.notif_pair_retry), withInput = true)
+    }
+
+    /**
+     * 사용자가 취소했거나 대기 시간이 지났을 때의 정리. 코드를 처리 중이면 그 작업이 끝나면서 정리하므로 건드리지 않는다.
+     * 무선 디버깅이 켜진 채로 남지 않게 끄고, 못 껐으면 직접 끄라고 알린다.
+     */
+    private fun cancelPairing(timedOut: Boolean) {
+        if (pending.get() > 0) return
+        mainHandler.removeCallbacks(pairingTimeout)
+        mdns?.stop()
+        pairing = false
+        val off = turnOffWirelessDebugging()
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        val base = getString(if (timedOut) R.string.notice_pair_timeout else R.string.notice_pair_cancelled)
+        Notifier.notice(this, if (off) base else base + "\n" + getString(R.string.notice_turn_off_wireless))
+        stopSelf()
     }
 
     // ---- 재적용/복원(페어링과 권한이 이미 있을 때) ---------------------------------------------
@@ -312,27 +357,24 @@ class SetupService : Service() {
         github: Boolean = failed,
         important: Boolean = false,
     ) {
-        // 보안상 무선 디버깅은 항상 끈다. 권한이 있으면 직접, 없으면 연결이 살아있을 때 shell 로.
-        runCatching {
-            if (checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED) {
-                Settings.Global.putInt(contentResolver, ADB_WIFI_ENABLED, 0)
-            }
-        }
-        runCatching { AdbManager.get(this).disconnect() }
+        // 보안상 무선 디버깅은 끈다. 꺼졌는지 다시 읽어서 확인하고, 못 껐으면 사용자에게 직접 끄라고 알린다.
+        val wirelessOff = turnOffWirelessDebugging()
+        runCatching { AdbManager.peek()?.disconnect() }
         // 이번 시도로 끝났으므로 Wi-Fi 대기용 예약 작업은 더 필요 없다.
         WifiRetryJob.cancel(this)
-        ShutterSound.setLastResult(this, message, failed)
+        val shown = if (wirelessOff) message else message + "\n" + getString(R.string.notice_turn_off_wireless)
+        ShutterSound.setLastResult(this, shown, failed)
         // 줄 서 있는 다른 작업이 있으면 포그라운드/서비스는 유지하고, 마지막 작업이 끝날 때만 정리한다.
         val idle = release()
         if (idle) stopForeground(STOP_FOREGROUND_REMOVE)
         if (failed || important) {
             // 실패와 \'처음 설정 완료\'는 놓치면 안 되므로 일반 중요도로 읽을 시간만큼 보여주고 자동으로 사라진다.
-            Notifier.notice(this, message)
+            Notifier.notice(this, shown)
         } else {
             // 성공은 조용한 채널(소리/팝업 없음)로 잠깐만 보여주고 자동으로 사라진다.
             notificationManager().notify(
                 ID_RESULT,
-                builder(getString(R.string.app_name), message, CHANNEL_PROGRESS, NotificationManager.IMPORTANCE_LOW)
+                builder(getString(R.string.app_name), shown, CHANNEL_PROGRESS, NotificationManager.IMPORTANCE_LOW)
                     .setAutoCancel(true)
                     .setTimeoutAfter(Notifier.TIMEOUT_SUCCESS_MS)
                     .build()
@@ -341,6 +383,23 @@ class SetupService : Service() {
         // 실패하면 별도 알림으로 GitHub 주소를 함께 안내한다.
         if (github) Notifier.github(this)
         if (idle) stopSelf()
+    }
+
+    /**
+     * 무선 디버깅을 끄고, 실제로 꺼졌는지 설정값을 다시 읽어서 돌려준다.
+     * 권한이 있으면 직접 끄고, 없으면 연결이 살아 있을 때만 shell 로 끈다(연결이 없으면 시도할 방법이 없다).
+     * shell 로 끄면 그 연결도 함께 끊기므로 예외는 무시한다.
+     */
+    private fun turnOffWirelessDebugging(): Boolean {
+        runCatching {
+            if (checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED) {
+                Settings.Global.putInt(contentResolver, ADB_WIFI_ENABLED, 0)
+            } else {
+                // 아직 연결한 적이 없으면 보낼 연결 자체가 없으므로 키를 새로 만들지 않고 넘어간다.
+                AdbManager.peek()?.takeIf { it.isConnected }?.let { sh(it, "settings put global $ADB_WIFI_ENABLED 0") }
+            }
+        }
+        return Settings.Global.getInt(contentResolver, ADB_WIFI_ENABLED, 0) == 0
     }
 
     private fun describe(t: Throwable): String = "${t.javaClass.simpleName}: ${t.message}"
@@ -385,14 +444,33 @@ class SetupService : Service() {
                 reply
             ).addRemoteInput(remoteInput).build()
             builder.addAction(action)
+            // 코드를 입력하지 않고 그만두는 길. 없으면 알림과 서비스를 사용자가 끌 방법이 없다.
+            val cancel = PendingIntent.getService(
+                this, 2,
+                Intent(this, SetupService::class.java).setAction(ACTION_CANCEL),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+            builder.addAction(
+                Notification.Action.Builder(
+                    Icon.createWithResource(this, R.drawable.ic_notification),
+                    getString(R.string.notif_cancel_action),
+                    cancel
+                ).build()
+            )
         }
-        startForeground(ID_FOREGROUND, builder.build(), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        // 서비스 유형(특수 용도)은 Android 14 에서 생긴 값이라 그보다 낮은 버전에서는 유형 없이 시작한다.
+        if (Build.VERSION.SDK_INT >= 34) {
+            startForeground(ID_FOREGROUND, builder.build(), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        } else {
+            startForeground(ID_FOREGROUND, builder.build())
+        }
     }
 
     companion object {
         const val ACTION_PAIR = "com.kimkinam.camerashit.PAIR"
         const val ACTION_CODE = "com.kimkinam.camerashit.CODE"
         const val ACTION_APPLY = "com.kimkinam.camerashit.APPLY"
+        const val ACTION_CANCEL = "com.kimkinam.camerashit.CANCEL"
         const val EXTRA_SILENT = "silent"
 
         /** 페어링 대기 서비스가 떠 있는지(화면이 중복 시작하지 않도록). */
@@ -416,6 +494,9 @@ class SetupService : Service() {
         const val EXTRA_UPDATED = "updated"
         const val EXTRA_AUTO = "auto"
         private const val WIFI_WAIT_MS = 60_000L
+
+        /** 코드를 입력하지 않고 이 시간이 지나면 설정을 중단한다. */
+        private const val PAIRING_TIMEOUT_MS = 10 * 60_000L
 
         fun start(
             context: Context,

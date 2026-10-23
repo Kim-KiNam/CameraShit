@@ -6,6 +6,7 @@ import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -22,6 +23,9 @@ class MainActivity : Activity() {
     private lateinit var toggle: Switch
     private lateinit var stepButton: Button
     private var updating = false
+
+    /** 도우미에게 요청을 보내 기다리는 중(이 동안 스위치를 잠근다). */
+    private var busy = false
 
     /** 지금 단계에서 stepButton 이 하는 일. */
     private var stepAction: () -> Unit = {}
@@ -49,22 +53,24 @@ class MainActivity : Activity() {
      */
     private fun applyChoice(silent: Boolean) {
         if (HelperClient.isUsable(this)) {
+            // 처리하는 동안 스위치를 잠가서 빠른 연타로 요청과 결과가 엇갈리지 않게 한다(요청도 한 줄로 처리된다).
+            busy = true
+            toggle.isEnabled = false
             val app = applicationContext
-            Thread {
-                val result = HelperClient.apply(app, silent)
-                runOnUiThread {
-                    if (result.ok) {
-                        ShutterSound.setLastResult(
-                            app,
-                            getString(if (silent) R.string.result_done else R.string.result_restored),
-                        )
-                        refresh()
-                    } else {
-                        ShutterSound.setHelperBroken(app, true)
-                        fallbackApply(silent)
-                    }
+            HelperClient.applyAsync(app, silent) { result ->
+                busy = false
+                toggle.isEnabled = true
+                if (result.ok) {
+                    ShutterSound.setLastResult(
+                        app,
+                        getString(if (silent) R.string.result_done else R.string.result_restored),
+                    )
+                    refresh()
+                } else {
+                    ShutterSound.setHelperBroken(app, true)
+                    fallbackApply(silent)
                 }
-            }.start()
+            }
         } else {
             fallbackApply(silent)
         }
@@ -111,24 +117,42 @@ class MainActivity : Activity() {
         val setUp = isSetUp()
         if (setUp && ShutterSound.isSilent(this)) ShutterSound.rememberSystemVersionIfMissing(this)
         // 안전망: 원하는 상태(끔)인데 풀려 있으면 앱을 연 김에 자동으로 다시 적용한다.
-        if (setUp && supported && ShutterSound.wantSilent(this) && !ShutterSound.isSilent(this) && !SetupService.running) {
+        if (setUp && supported && ShutterSound.wantSilent(this) && !ShutterSound.isSilent(this) &&
+            !SetupService.running && !busy
+        ) {
             if (HelperClient.isUsable(this)) {
+                busy = true
                 val app = applicationContext
-                Thread {
-                    if (HelperClient.apply(app, silent = true).ok) runOnUiThread { refresh() }
-                    else ShutterSound.setHelperBroken(app, true)
-                }.start()
+                HelperClient.applyAsync(app, silent = true) { result ->
+                    busy = false
+                    if (result.ok) refresh() else ShutterSound.setHelperBroken(app, true)
+                }
             } else if (adbReady() && Wifi.isConnected(this)) {
                 SetupService.start(this, SetupService.ACTION_APPLY, silent = true, auto = true)
             }
+        } else if (setUp && supported && !SetupService.running && !busy && HelperInstaller.needsInstall(this) &&
+            adbReady() && Wifi.isConnected(this) && ShutterSound.helperInstallDue(this)
+        ) {
+            // 도우미가 없거나(예전 버전에서 업데이트), 오래된 버전이거나, 고장 난 상태: 앱을 연 김에 하루 한 번만
+            // 무선 디버깅 경로로 현재 상태를 다시 적용하면서 도우미를 설치/복구한다.
+            ShutterSound.markHelperInstallAttempt(this)
+            SetupService.start(this, SetupService.ACTION_APPLY, silent = ShutterSound.wantSilent(this), auto = true)
         }
         updating = true
         toggle.isChecked = supported && ShutterSound.isSilent(this)
         updating = false
+        toggle.isEnabled = !busy
         toggle.visibility = if (setUp && supported) View.VISIBLE else View.GONE
         status.text = when {
             !supported -> getString(R.string.status_unsupported, ShutterSound.deviceName())
-            ShutterSound.isSilent(this) -> getString(R.string.status_silent)
+            // 설정값이 \'끔\'이라는 뜻이지 실제 촬영음을 확인한 것은 아니다. 소리 모드가 \'소리\'면 셔터음이 날 수 있어서 함께 알려준다.
+            ShutterSound.isSilent(this) -> getString(R.string.status_silent) + "\n" + getString(
+                if (getSystemService(AudioManager::class.java).ringerMode == AudioManager.RINGER_MODE_NORMAL) {
+                    R.string.status_ringer_sound
+                } else {
+                    R.string.status_ringer_ok
+                }
+            )
             else -> getString(R.string.status_normal)
         }
         if (setUp || !supported) {
@@ -176,15 +200,25 @@ class MainActivity : Activity() {
                 stepButton.setText(R.string.step_open_wireless)
                 stepAction = { if (requireWifi()) openWirelessDebugging() }
             }
+            missingPermissions().isNotEmpty() -> {
+                // 권한은 자동으로 다시 묻지 않는다(거절하면 같은 팝업이 끝없이 반복될 수 있다). 버튼을 눌렀을 때만 요청한다.
+                stepTitle.setText(R.string.step3_title)
+                guide.setText(R.string.step_permission_guide)
+                if (permissionBlockedForever()) {
+                    stepButton.setText(R.string.step_permission_open_settings)
+                    stepAction = { startFirst(appDetailsIntent()) }
+                } else {
+                    stepButton.setText(R.string.step_permission_button)
+                    stepAction = { requestMissingPermissions() }
+                }
+            }
             else -> {
                 stepTitle.setText(R.string.step3_title)
                 guide.setText(R.string.step3_guide)
                 stepButton.setText(R.string.step_open_wireless)
-                stepAction = {
-                    if (ensurePermissions()) openWirelessDebugging()
-                }
+                stepAction = { openWirelessDebugging() }
                 // 3단계에 들어오면 페어링 대기(알림창 코드 입력)를 바로 시작한다.
-                if (ensurePermissions() && !SetupService.pairing) {
+                if (!SetupService.pairing) {
                     SetupService.start(this, SetupService.ACTION_PAIR)
                 }
             }
@@ -203,16 +237,29 @@ class MainActivity : Activity() {
         return false
     }
 
-    /** 알림(코드 입력)과 Android 17 로컬 네트워크 권한이 있는지 확인하고, 없으면 요청한다. */
-    private fun ensurePermissions(): Boolean {
-        val missing = buildList {
-            if (Build.VERSION.SDK_INT >= 33) add(Manifest.permission.POST_NOTIFICATIONS)
-            if (Build.VERSION.SDK_INT >= 37) add("android.permission.ACCESS_LOCAL_NETWORK")
-        }.filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
-        if (missing.isEmpty()) return true
+    /** 설정에 필요한 권한 중 아직 허용되지 않은 것: 알림(코드 입력)과 Android 17 로컬 네트워크. 확인만 하고 요청은 하지 않는다. */
+    private fun missingPermissions(): List<String> = buildList {
+        if (Build.VERSION.SDK_INT >= 33) add(Manifest.permission.POST_NOTIFICATIONS)
+        if (Build.VERSION.SDK_INT >= 37) add("android.permission.ACCESS_LOCAL_NETWORK")
+    }.filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
+
+    /** 사용자가 버튼을 눌렀을 때만 호출한다. */
+    private fun requestMissingPermissions() {
+        val missing = missingPermissions()
+        if (missing.isEmpty()) return
+        ShutterSound.setPermissionAsked(this)
         requestPermissions(missing.toTypedArray(), REQ_PERMISSIONS)
-        return false
     }
+
+    /**
+     * 이미 한 번 물었는데 시스템이 더는 팝업을 띄워 주지 않는 상태(\'다시 묻지 않음\' 포함).
+     * 이 경우 요청해도 즉시 거절되므로 앱 설정 화면으로 보내야 한다.
+     */
+    private fun permissionBlockedForever(): Boolean =
+        ShutterSound.permissionAsked(this) && missingPermissions().any { !shouldShowRequestPermissionRationale(it) }
+
+    private fun appDetailsIntent() =
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:$packageName"))
 
     private fun openDeviceInfo() = startFirst(Intent(Settings.ACTION_DEVICE_INFO_SETTINGS))
 

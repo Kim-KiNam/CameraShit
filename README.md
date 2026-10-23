@@ -1,9 +1,9 @@
-﻿# CameraShit
+# CameraShit
 
 삼성 갤럭시 카메라 셔터음을 **PC·케이블·USB 디버깅 없이** 끄는 앱.
 
 ## 설치
-1. [최신 APK 다운로드](https://github.com/Kim-KiNam/CameraShit/raw/main/releases/CameraShit-v0.3.5.apk)
+1. [최신 APK 다운로드](https://github.com/Kim-KiNam/CameraShit/raw/main/releases/CameraShit-v0.3.6.apk)
 2. 폰에서 APK를 열어 설치 ("출처를 알 수 없는 앱" 허용 필요)
 3. 앱을 열고 화면 안내를 따라 1회 설정 (개발자 옵션 → 무선 디버깅 → 알림창에 6자리 코드 입력)
 
@@ -34,7 +34,8 @@ Android Studio 에서 열거나 `./gradlew assembleDebug`
 (도우미 APK 는 빌드 때 본 앱의 `assets/helper.apk` 로 자동 내장된다. 두 앱은 같은 키로 서명되어야 한다.)
 
 ## 한계
-- 삼성 One UI 전용, 시스템 소리 모드가 진동/무음일 때 동작
+- 삼성 One UI 전용, **Android 11 이상**(무선 디버깅 페어링이 있는 버전), 시스템 소리 모드가 진동/무음일 때 동작
+- 화면의 "셔터음 끄기가 적용되어 있습니다"는 설정값이 꺼졌다는 뜻이고, 실제 촬영음을 확인한 것은 아니다
 - 구형 앱 설치 우회 플래그에 의존한다(막히면 대체 경로로 동작)
 - 제조사 업데이트로 막힐 수 있음
 - 앱을 삭제할 때는 "CameraShit Helper" 도 함께 삭제한다
